@@ -30,27 +30,17 @@ fn point_density(points : Vec<Point>, radius : u32, grid_size : u32)  {
     let rad_steps = floor(rad_dg/grid_size); 
 
     //Round all latitude data to the nearest grid. 
-    let lat : Vec<f64> = points.iter().map(|&point| point.latitude / (1 / grid_size))
-    let lon : Vec<f64> = Vec::new();
-    for point in points {
-        lat.push(point.latitude * (1/grid_size));
-        lon.push(point.longitude * (1/grid_size));
-    }
-
-    lat_data <- unlist(df[,lat_col])
-    lat <- lat_data * (1/grid_size)
-    lat <- round(lat, 0)
-    lat <- lat * (grid_size)
-    lat <- round(lat,3)
-
-    //Round all longitude data to the nearest grid. 
-    lon_data <- unlist(df[,lon_col])
-    lon <- lon_data * (1/grid_size)
-    lon <- round(lon, 0)
-    lon <- lon * (grid_size)
-    lon <- round(lon,3)
+    let lat : Vec<f64> = points.iter().map(|&point| round_float(round_float(point.latitude / (1 / grid_size), 0) * grid_size, 3))
+    let lon : Vec<f64> = points.iter().map(|&point| round_float(round_float(point.longitude / (1 / grid_size), 0) * grid_size, 3))
+    println!("{:?}", points);
+    println!("{:?}")
 }
 
-fn calc_density(radius : u32, grid_size : u32) ->  Linspace<f64> {
-    let lat_vec = linspace() seq(lati - radius * grid_size, lati + radius * grid_size, grid_size)
+fn calc_density(lati : f64, loni : f64, radius : u32, grid_size : u32) ->  Linspace<f64> {
+    let mut lat_vec = linspace(lati - radius * grid_size, lati + radius * grid_sizez, grid_size);
+    let mut lat_vec_t = lat_vec.map(|&lat| ((radius * grid_size).cos() / (lat - lati).cos()).acos()); 
+    lat_vec_t = lat_vec_t.map(|&lat| lat / (lat.))
+    lat.vec.t <- lat.vec.t/cos(lat.vec * 2 * pi/360)
+    lat.vec.t <- round(lat.vec.t/grid_size,0)*grid_size
+
 }
