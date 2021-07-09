@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 pub struct Point {
     latitude: f64,
     longitude: f64,
+    name : Option<String>
 }
 
 fn round_float(float: f64, decimal_places: i32) -> f64 {
@@ -29,6 +30,7 @@ pub fn point_density(points : &Vec<Point>, radius : f64, grid_size : f64) -> Res
     //convert grid size and radius
     let grid_size: f64 = round_float(grid_size / 111.2, 3);
     let rad_dg: f64 = radius / 111.2; // radius as a latitudinal distance
+    println!("Rad Dg: {}", rad_dg); 
     let rad_steps: f64 = (rad_dg / grid_size).round();
     let n = ((2.0 * rad_steps) + 1.0) as usize;
     println!("Grid Size: {}", grid_size);
@@ -59,87 +61,62 @@ pub fn point_density(points : &Vec<Point>, radius : f64, grid_size : f64) -> Res
 
 pub struct Error;
 
-pub fn calc_density(lati: f64, loni: f64, radius: f64, grid_size: f64) -> Result<(), Error> {
+pub fn calc_density(lati: f64, loni: f64, radius: f64, grid_size: f64) -> Vec<Point> {
     let grid_size: f64 = round_float(grid_size / 111.2, 3);
     let rad_dg: f64 = radius / 111.2; // radius as a latitudinal distance
     let rad_steps: f64 = (rad_dg / grid_size).round();
     let n = ((2.0 * rad_steps) + 1.0) as usize;
 
-    // Get lat vector and tolerance
+    // Get lat vector and matrix
     let mut lat_vec: ndarray::Array1<f64> = ndarray::Array::linspace(
         lati - rad_steps * grid_size,
         lati + rad_steps * grid_size,
         n,
     );
-    let mut lat_vec_t =
-        lat_vec.map(|lat_t| ((rad_steps * grid_size).cos() / (lat_t - lati).cos()).acos());
-    ndarray::Zip::from(&mut lat_vec_t)
-        .and(&lat_vec)
-        .for_each(|lat_t, &lat| {
-            *lat_t = *lat_t / ((lat * 2.0 * PI / 360.0).cos());
-        });
-    lat_vec_t = lat_vec_t.map(|lat_t| round_float(lat_t / grid_size, 0) * grid_size);
+    let mut lat_mat = ndarray::Array2::<f64>::zeros((lat_vec.len(), lat_vec.len()));
+    for (i, mut row) in lat_mat.axis_iter_mut(ndarray::Axis(0)).enumerate() {
+        row.fill(lat_vec[i]);
+    }
 
-    //vector that contains all longitude grids in neighborhood
+    //Get lon vector and matrix
     let lon_vec: ndarray::Array1<f64> = ndarray::Array::linspace(
         loni - rad_steps * grid_size,
         loni + rad_steps * grid_size,
         n,
-    );
-
-    //matrix that contains lon position of every grid in neighborhood
+    ); 
     let mut lon_mat = ndarray::Array2::<f64>::zeros((lon_vec.len(), lon_vec.len()));
     for (i, mut row) in lon_mat.axis_iter_mut(ndarray::Axis(0)).enumerate() {
         row.fill(lon_vec[i]);
     }
-    let tlon_mat = (&lon_mat - loni).mapv(f64::abs);
-    let tlon_mat = tlon_mat.t();
+    //Transpose lon
+    let lon_mat = lon_mat.t();
 
-    //apply latitude tolerance, zero-out all points not within neighborhood
-    let temp = lat_vec_t - tlon_mat;
-    let temp = temp.map(|x| {
-        if x < &(grid_size - (10.0 as f64).powi(-6)) {
-            return 0.0;
-        } else if x > &0.0 {
-            return 1.0;
-        } else {
-            return *x;
-        }
-    });
-    let temp2 = temp * &lon_mat.t();
-    //matrix containing latitude of all grids in neighborhood
-    let mut lat_mat = ndarray::Array2::<f64>::zeros((lat_vec.len(), lat_vec.len()));
-    for (i, mut row) in lat_mat.axis_iter_mut(ndarray::Axis(0)).enumerate() {
-        row.fill(lat_vec[lat_vec.len() - i - 1]);
-    }
+    //Loop through matrix and check if in circle.
     let lat_vec = lat_mat
         .to_shape((1, lat_mat.nrows() * lat_mat.ncols()))
         .expect("Could not flatten 2D array.")
         .into_owned();
-    let lon_vec = temp2
-        .to_shape((1, temp2.nrows() * temp2.ncols()))
+    let lon_vec = lon_mat
+        .to_shape((1, lon_mat.nrows() * lon_mat.ncols()))
         .expect("Could not flatten 2D array.")
         .into_owned();
-    //eliminate all rows not in neighborhood (0 value for lon)
-        // row_sub = apply(return.mat, 1, function(x) all(x[1]*x[2] !=0 ))
-        // return.mat <- return.mat[row_sub,]
-    let mut counter = 0; 
-    (lon_vec * lat_vec).map(|x| {
-        if x != &0.0 {
-            counter = counter + 1;
-        } else {}
-    });
-    println!("{:?}", counter);
-    // lat.vec <- c(lat.mat)
-    // lon.vec <- c(temp2)
-    // println!("{:?}", lat_mat);
-    // count.vec <- rep(count,length(lat.vec))
-    // sumDate.vec <- rep(sumDate,length(lat.vec))
-    // return.mat <- cbind(lat.vec,lon.vec,count.vec,sumDate.vec)
-    // print(return.mat)
-    // #eliminate all rows not in neighborhood (0 value for lon)
-    // row_sub = apply(return.mat, 1, function(x) all(x[1]*x[2] !=0 ))
-    // return.mat <- return.mat[row_sub,]
 
-    Ok(())
+    //Loop through both arrays and return point
+    let mut output : Vec<Point> = Vec::new();
+    for i in lat_mat.indexed_iter() {
+        //Check if in circle.
+        let mut lat = i.1;
+        let mut lon = lon_mat[[i.0.0, i.0.1]];
+
+        if (lat-lati).powf(2.0) + (lon-loni).powf(2.0) <= rad_dg.powf(2.0) {
+            // println!("Left : {}", (lati-lat).powf(2.0) + (loni-lon).powf(2.0));
+            // println!("Right : {}", rad_dg.powf(2.0)); 
+            output.push(Point {
+                latitude : *lat, 
+                longitude : lon,
+                name : Some("test".to_string())
+            })
+        }
+    }
+    output
 }

@@ -1,5 +1,5 @@
 [package]
-name = "proximity-rs"
+name = "proximity"
 version = "0.1.0"
 authors = ["natefduncan <natefduncan@gmail.coM>"]
 edition = "2018"
