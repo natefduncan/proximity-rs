@@ -7,124 +7,165 @@
 //adds density
 
 use ndarray;
+use rust_decimal::prelude::*;
+use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
-use std::f64::consts::PI;
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Point {
-    latitude: f64,
-    longitude: f64,
+    latitude: Decimal,
+    longitude: Decimal,
     name: Option<String>,
 }
 
-fn round_float(float: f64, decimal_places: i32) -> f64 {
-    let mut mult: i32 = 10;
-    for _ in 1..decimal_places {
-        mult = mult * 10
-    }
-    let mult_float = f64::from(mult);
-    return (float * mult_float).round() / mult_float;
+#[derive(Debug)]
+pub struct Density {
+    coord_string: String,
+    density: usize,
 }
 
-pub fn point_density(points: &Vec<Point>, radius: f64, grid_size: f64) -> Result<(), Error> {
+#[derive(Debug)]
+pub struct Score {
+    desirable: usize,
+    undesirable: usize,
+}
+
+fn round(x: Decimal, n: u32) -> Decimal {
+    return x.round_dp_with_strategy(n, RoundingStrategy::MidpointAwayFromZero);
+}
+
+pub fn score(
+    points: Vec<Point>,
+    desirables: Vec<Point>,
+    undesirables: Vec<Point>,
+    radius: Decimal,
+    grid_size: Decimal,
+) -> Vec<Score> {
     //convert grid size and radius
-    let grid_size: f64 = round_float(grid_size / 111.2, 3);
-    let rad_dg: f64 = radius / 111.2; // radius as a latitudinal distance
-    let rad_steps: f64 = (rad_dg / grid_size).round();
-    let n = ((2.0 * rad_steps) + 1.0) as usize;
+    let grid_size: Decimal = round(grid_size / dec!(111.2), 3);
+    let rad_dg: Decimal = radius / dec!(111.2); // radius as a latitudinal distance
+    let rad_steps: Decimal = round(rad_dg / grid_size, 0);
+    let n = ((2.0 * rad_steps.to_f64().unwrap()) + 1.0) as usize;
+
+    //Get density
+    let desirable_density = point_density(&desirables, grid_size, n, rad_dg);
+    let undesirable_density = point_density(&undesirables, grid_size, n, rad_dg);
+    //Score each point
+    let scores: Vec<Score> = points
+        .iter()
+        .map(|point| {
+            let lati = round(
+                round(point.latitude * (dec!(1.0) / grid_size), 0) * grid_size,
+                3,
+            );
+            let loni = round(
+                round(point.longitude * (dec!(1.0) / grid_size), 0) * grid_size,
+                3,
+            );
+            let coord_string = format!("{}_{}", lati, loni);
+            let desirable_score: usize = match desirable_density.get(&coord_string) {
+                Some(&number) => number,
+                _ => 0,
+            };
+            let undesirable_score: usize = match undesirable_density.get(&coord_string) {
+                Some(&number) => number,
+                _ => 0,
+            };
+            Score {
+                desirable: desirable_score,
+                undesirable: undesirable_score,
+            }
+        })
+        .collect::<Vec<Score>>();
+    scores
+}
+
+pub fn point_density(
+    points: &Vec<Point>,
+    grid_size: Decimal,
+    n: usize,
+    rad_dg: Decimal,
+) -> HashMap<String, usize> {
+    let rad_steps: Decimal = round(rad_dg / grid_size, 0);
 
     //round all latitude data to nearest grid
     let lat = points
         .into_iter()
         .map(|point| {
-            return round_float(
-                round_float(point.latitude * (1.0 / grid_size), 0) * grid_size,
+            return round(
+                round(point.latitude * (dec!(1.0) / grid_size), 0) * grid_size,
                 3,
             );
         })
-        .collect::<Vec<f64>>();
+        .collect::<Vec<Decimal>>();
     let lon = points
         .into_iter()
         .map(|point| {
-            return round_float(
-                round_float(point.longitude * (1.0 / grid_size), 0) * grid_size,
+            return round(
+                round(point.longitude * (dec!(1.0) / grid_size), 0) * grid_size,
                 3,
             );
         })
-        .collect::<Vec<f64>>();
+        .collect::<Vec<Decimal>>();
 
-    let olat_olon: Vec<String> = lat
-        .iter()
-        .zip(lon.iter())
-        .map(|coord| {
-            let lati = coord.0;
-            let loni = coord.1;
-            return format!("{}_{}", lati.to_string(), loni.to_string());
-        })
-        .collect::<Vec<String>>();
-
-    let rlat_rlon: Vec<String> = points
-        .into_iter()
-        .map(|point| return format!("{}_{}", point.latitude, point.longitude))
-        .collect::<Vec<String>>();
-
-    vector_grid_points
-    println!("{:?}", rlat_rlon);
-    Ok(())
+    let mut grid: HashMap<String, usize> = HashMap::new();
+    for point in points {
+        for g in calc_density(
+            point.latitude,
+            point.longitude,
+            rad_steps,
+            grid_size,
+            n,
+            rad_dg,
+        ) {
+            *grid.entry(g).or_default() += 1;
+        }
+    }
+    return grid;
 }
 
-pub struct Error;
-
-pub fn calc_density(lati: f64, loni: f64, radius: f64, grid_size: f64) -> Vec<Point> {
+pub fn calc_density(
+    lati: Decimal,
+    loni: Decimal,
+    rad_steps: Decimal,
+    grid_size: Decimal,
+    n: usize,
+    rad_dg: Decimal,
+) -> Vec<String> {
     // Get lat vector and matrix
-    let mut lat_vec: ndarray::Array1<f64> = ndarray::Array::linspace(
-        lati - rad_steps * grid_size,
-        lati + rad_steps * grid_size,
+    let lat_vec: ndarray::Array1<f64> = ndarray::Array::linspace(
+        (lati - rad_steps * grid_size).to_f64().unwrap(),
+        (lati + rad_steps * grid_size).to_f64().unwrap(),
         n,
     );
-    let mut lat_mat = ndarray::Array2::<f64>::zeros((lat_vec.len(), lat_vec.len()));
+    let mut lat_mat = ndarray::Array2::<Decimal>::zeros((lat_vec.len(), lat_vec.len()));
     for (i, mut row) in lat_mat.axis_iter_mut(ndarray::Axis(0)).enumerate() {
-        row.fill(lat_vec[i]);
+        row.fill(round(Decimal::from_f64(lat_vec[i]).unwrap(), 3));
     }
 
     //Get lon vector and matrix
     let lon_vec: ndarray::Array1<f64> = ndarray::Array::linspace(
-        loni - rad_steps * grid_size,
-        loni + rad_steps * grid_size,
+        (loni - rad_steps * grid_size).to_f64().unwrap(),
+        (loni + rad_steps * grid_size).to_f64().unwrap(),
         n,
     );
-    let mut lon_mat = ndarray::Array2::<f64>::zeros((lon_vec.len(), lon_vec.len()));
+    let mut lon_mat = ndarray::Array2::<Decimal>::zeros((lon_vec.len(), lon_vec.len()));
     for (i, mut row) in lon_mat.axis_iter_mut(ndarray::Axis(0)).enumerate() {
-        row.fill(lon_vec[i]);
+        row.fill(round(Decimal::from_f64(lon_vec[i]).unwrap(), 3));
     }
     //Transpose lon
     let lon_mat = lon_mat.t();
 
-    //Loop through matrix and check if in circle.
-    let lat_vec = lat_mat
-        .to_shape((1, lat_mat.nrows() * lat_mat.ncols()))
-        .expect("Could not flatten 2D array.")
-        .into_owned();
-    let lon_vec = lon_mat
-        .to_shape((1, lon_mat.nrows() * lon_mat.ncols()))
-        .expect("Could not flatten 2D array.")
-        .into_owned();
-
     //Loop through both arrays and return point
-    let mut output: Vec<Point> = Vec::new();
+    let mut output: Vec<String> = Vec::new();
     for i in lat_mat.indexed_iter() {
         //Check if in circle.
-        let mut lat = i.1;
-        let mut lon = lon_mat[[i.0 .0, i.0 .1]];
+        let lat = i.1;
+        let lon = lon_mat[[i.0 .0, i.0 .1]];
 
-        if (lat - lati).powf(2.0) + (lon - loni).powf(2.0) <= rad_dg.powf(2.0) {
-            // println!("Left : {}", (lati-lat).powf(2.0) + (loni-lon).powf(2.0));
-            // println!("Right : {}", rad_dg.powf(2.0));
-            output.push(Point {
-                latitude: *lat,
-                longitude: lon,
-                name: Some("test".to_string()),
-            })
+        if (lat - lati).powi(2) + (lon - loni).powi(2) <= rad_dg.powi(2) {
+            output.push(format!("{}_{}", *lat, lon));
         }
     }
     output
