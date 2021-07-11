@@ -1,6 +1,9 @@
-use super::density::Point;
+use super::density::{Point, Density};
 use csv;
 use std::io;
+use std::collections::HashMap; 
+use rust_decimal::prelude::*;
+use rust_decimal_macros::dec;
 
 pub fn csv_file_to_Points(file_path: &str) -> Vec<Point> {
     let mut rdr = csv::Reader::from_path(&file_path).expect("Could not get from path.");
@@ -12,7 +15,7 @@ pub fn csv_file_to_Points(file_path: &str) -> Vec<Point> {
     return output;
 }
 
-pub fn output_as_csv(data: Vec<Point>) -> Result<(), std::io::Error> {
+pub fn points_as_csv(data: Vec<Point>) -> Result<(), std::io::Error> {
     //let file = File::create(&file_name).expect("Failed to create outfile.");
     let mut wtr = csv::WriterBuilder::new()
         .has_headers(false)
@@ -22,5 +25,19 @@ pub fn output_as_csv(data: Vec<Point>) -> Result<(), std::io::Error> {
         wtr.serialize(p)?;
     }
     wtr.flush()?;
+    Ok(())
+}
+
+pub fn density_as_csv(data: HashMap<String, usize>) -> Result<(), std::io::Error> {
+    let mut places : Vec<Point> = Vec::new(); 
+    for (coord_string, density) in data.iter() {
+        let vec = coord_string.split("_").collect::<Vec<&str>>();
+        places.push(Point {
+            latitude : Decimal::from_str(vec[0]).unwrap(), 
+            longitude : Decimal::from_str(vec[1]).unwrap(), 
+            name : Some(density.to_string())
+        })
+    }
+    points_as_csv(places).expect("Could not get places"); 
     Ok(())
 }
