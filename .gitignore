@@ -12,4 +12,7 @@ Cargo.lock
 
 # Added by cargo
 
+/test
+*.csv
+*.sh
 /target
