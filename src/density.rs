@@ -14,15 +14,15 @@ use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Point {
-    latitude: Decimal,
-    longitude: Decimal,
-    name: Option<String>,
+    pub latitude: Decimal,
+    pub longitude: Decimal,
+    pub name: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct Density {
-    coord_string: String,
-    density: usize,
+    pub coord_string: String,
+    pub density: usize,
 }
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ pub struct Score {
     undesirable: usize,
 }
 
-fn round(x: Decimal, n: u32) -> Decimal {
+pub fn round(x: Decimal, n: u32) -> Decimal {
     return x.round_dp_with_strategy(n, RoundingStrategy::MidpointAwayFromZero);
 }
 
@@ -51,6 +51,7 @@ pub fn score(
     //Get density
     let desirable_density = point_density(&desirables, grid_size, n, rad_dg);
     let undesirable_density = point_density(&undesirables, grid_size, n, rad_dg);
+
     //Score each point
     let scores: Vec<Score> = points
         .iter()
@@ -88,32 +89,19 @@ pub fn point_density(
     rad_dg: Decimal,
 ) -> HashMap<String, usize> {
     let rad_steps: Decimal = round(rad_dg / grid_size, 0);
-
-    //round all latitude data to nearest grid
-    let lat = points
-        .into_iter()
-        .map(|point| {
-            return round(
-                round(point.latitude * (dec!(1.0) / grid_size), 0) * grid_size,
-                3,
-            );
-        })
-        .collect::<Vec<Decimal>>();
-    let lon = points
-        .into_iter()
-        .map(|point| {
-            return round(
-                round(point.longitude * (dec!(1.0) / grid_size), 0) * grid_size,
-                3,
-            );
-        })
-        .collect::<Vec<Decimal>>();
-
     let mut grid: HashMap<String, usize> = HashMap::new();
     for point in points {
+        let lati = round(
+            round(point.latitude * (dec!(1.0) / grid_size), 0) * grid_size,
+            3,
+        );
+        let loni = round(
+            round(point.longitude * (dec!(1.0) / grid_size), 0) * grid_size,
+            3,
+        ); 
         for g in calc_density(
-            point.latitude,
-            point.longitude,
+            lati, 
+            loni, 
             rad_steps,
             grid_size,
             n,
