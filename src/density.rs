@@ -12,11 +12,13 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Point {
     pub latitude: Decimal,
     pub longitude: Decimal,
     pub name: Option<String>,
+    pub category: Option<String>,
+    pub score: Option<Score>,
 }
 
 #[derive(Debug)]
@@ -25,10 +27,10 @@ pub struct Density {
     pub density: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Score {
-    desirable: usize,
-    undesirable: usize,
+    pub desirable: usize,
+    pub undesirable: usize,
 }
 
 pub fn round(x: Decimal, n: u32) -> Decimal {
@@ -36,12 +38,12 @@ pub fn round(x: Decimal, n: u32) -> Decimal {
 }
 
 pub fn score(
-    points: Vec<Point>,
-    desirables: Vec<Point>,
-    undesirables: Vec<Point>,
+    points: &Vec<Point>,
+    desirables: &Vec<Point>,
+    undesirables: &Vec<Point>,
     radius: Decimal,
     grid_size: Decimal,
-) -> Vec<Score> {
+) -> Vec<Point> {
     //convert grid size and radius
     let grid_size: Decimal = round(grid_size / dec!(111.2), 3);
     let rad_dg: Decimal = radius / dec!(111.2); // radius as a latitudinal distance
@@ -53,7 +55,7 @@ pub fn score(
     let undesirable_density = point_density(&undesirables, grid_size, n, rad_dg);
 
     //Score each point
-    let scores: Vec<Score> = points
+    let scores: Vec<Point> = points
         .iter()
         .map(|point| {
             let lati = round(
@@ -73,12 +75,20 @@ pub fn score(
                 Some(&number) => number,
                 _ => 0,
             };
-            Score {
-                desirable: desirable_score,
-                undesirable: undesirable_score,
-            }
+
+            let output = Point {
+                latitude: point.latitude,
+                longitude: point.longitude,
+                name: point.name.to_owned(),
+                category: point.category.to_owned(),
+                score: Some(Score {
+                    desirable: desirable_score,
+                    undesirable: undesirable_score,
+                }),
+            };
+            output
         })
-        .collect::<Vec<Score>>();
+        .collect::<Vec<Point>>();
     scores
 }
 
@@ -98,15 +108,8 @@ pub fn point_density(
         let loni = round(
             round(point.longitude * (dec!(1.0) / grid_size), 0) * grid_size,
             3,
-        ); 
-        for g in calc_density(
-            lati, 
-            loni, 
-            rad_steps,
-            grid_size,
-            n,
-            rad_dg,
-        ) {
+        );
+        for g in calc_density(lati, loni, rad_steps, grid_size, n, rad_dg) {
             *grid.entry(g).or_default() += 1;
         }
     }
