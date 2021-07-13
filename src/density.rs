@@ -12,13 +12,13 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd, Clone)]
 pub struct Point {
     pub latitude: Decimal,
     pub longitude: Decimal,
     pub name: Option<String>,
-    pub category: Option<String>,
-    pub score: Option<Score>,
+    pub category: Option<String>, 
+    pub score: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -27,20 +27,14 @@ pub struct Density {
     pub density: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Score {
-    pub desirable: usize,
-    pub undesirable: usize,
-}
-
 pub fn round(x: Decimal, n: u32) -> Decimal {
     return x.round_dp_with_strategy(n, RoundingStrategy::MidpointAwayFromZero);
 }
 
 pub fn score(
-    points: &Vec<Point>,
-    desirables: &Vec<Point>,
-    undesirables: &Vec<Point>,
+    points: Vec<Point>,
+    x : &str, 
+    y : &str,
     radius: Decimal,
     grid_size: Decimal,
 ) -> Vec<Point> {
@@ -50,13 +44,23 @@ pub fn score(
     let rad_steps: Decimal = round(rad_dg / grid_size, 0);
     let n = ((2.0 * rad_steps.to_f64().unwrap()) + 1.0) as usize;
 
+    //Split into x and y points
+    let mut x_points : Vec<Point> = Vec::new();
+    let mut y_points : Vec<Point> = Vec::new();
+    for point in &points {
+        if point.category == Some(x.to_owned()) {
+            x_points.push(point.clone());
+        } else if point.category == Some(y.to_owned()) {
+            y_points.push(point.clone()); 
+        }
+    }
+    
     //Get density
-    let desirable_density = point_density(&desirables, grid_size, n, rad_dg);
-    let undesirable_density = point_density(&undesirables, grid_size, n, rad_dg);
+    let y_density = point_density(&y_points, grid_size, n, rad_dg);
 
     //Score each point
-    let scores: Vec<Point> = points
-        .iter()
+    let scores: Vec<Point> = x_points
+        .iter_mut()
         .map(|point| {
             let lati = round(
                 round(point.latitude * (dec!(1.0) / grid_size), 0) * grid_size,
@@ -67,11 +71,7 @@ pub fn score(
                 3,
             );
             let coord_string = format!("{}_{}", lati, loni);
-            let desirable_score: usize = match desirable_density.get(&coord_string) {
-                Some(&number) => number,
-                _ => 0,
-            };
-            let undesirable_score: usize = match undesirable_density.get(&coord_string) {
+            let score: usize = match y_density.get(&coord_string) {
                 Some(&number) => number,
                 _ => 0,
             };
@@ -81,10 +81,7 @@ pub fn score(
                 longitude: point.longitude,
                 name: point.name.to_owned(),
                 category: point.category.to_owned(),
-                score: Some(Score {
-                    desirable: desirable_score,
-                    undesirable: undesirable_score,
-                }),
+                score: Some(score),
             };
             output
         })
