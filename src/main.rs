@@ -1,9 +1,8 @@
 mod density;
 mod utils;
 use rust_decimal::prelude::*;
-use rust_decimal_macros::dec;
 extern crate clap;
-use clap::{Arg, App, SubCommand};
+use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("Proximity")
@@ -46,21 +45,22 @@ fn main() {
         .takes_value(true))
     .get_matches();
 
-    let grid_size : Decimal = Decimal::from_str(matches.value_of("GRID-SIZE").unwrap_or("1")).unwrap();  
-    let radius : Decimal = Decimal::from_str(matches.value_of("RADIUS").unwrap_or("1")).unwrap();  
-    
+    let grid_size: Decimal =
+        Decimal::from_str(matches.value_of("GRID-SIZE").unwrap_or("1")).unwrap();
+    let radius: Decimal = Decimal::from_str(matches.value_of("RADIUS").unwrap_or("1")).unwrap();
+
     let mut points: Vec<density::Point> = Vec::new();
     if matches.is_present("POINT") {
         let file = matches.value_of("POINT").unwrap();
-        points.append(&mut utils::csv_file_to_points(&file)); 
+        points.append(&mut utils::csv_file_to_points(&file));
     } else {
         points.append(&mut utils::stdin_to_points());
     }
 
     let des_path = matches.value_of("DESIRABLE").unwrap();
     let mut des: Vec<density::Point> = utils::csv_file_to_points(des_path);
-    
-    let undes_path = matches.value_of("UNDESIRABLE").unwrap(); 
+
+    let undes_path = matches.value_of("UNDESIRABLE").unwrap();
     let mut undes: Vec<density::Point> = utils::csv_file_to_points(undes_path);
 
     let mut scores = density::score(&points, &des, &undes, radius, grid_size);
@@ -73,9 +73,14 @@ fn main() {
     });
 
     if matches.is_present("N") {
-        let n : usize = matches.value_of("N").unwrap().parse::<usize>().unwrap(); 
-        utils::score_as_csv(&mut scores.into_iter().take(n).collect::<Vec<density::Point>>(), &mut des, &mut undes).expect("Fail");
+        let n: usize = matches.value_of("N").unwrap().parse::<usize>().unwrap();
+        utils::score_as_csv(
+            &mut scores.into_iter().take(n).collect::<Vec<density::Point>>(),
+            &mut des,
+            &mut undes,
+        )
+        .expect("Fail");
     } else {
-        utils::score_as_csv(&mut scores, &mut des, &mut undes).expect("Fail"); 
+        utils::score_as_csv(&mut scores, &mut des, &mut undes).expect("Fail");
     }
 }

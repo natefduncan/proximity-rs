@@ -16,7 +16,7 @@ pub fn csv_file_to_points(file_path: &str) -> Vec<Point> {
 }
 
 pub fn stdin_to_points() -> Vec<Point> {
-    let mut rdr = csv::Reader::from_reader(io::stdin()); 
+    let mut rdr = csv::Reader::from_reader(io::stdin());
     let mut output: Vec<Point> = Vec::new();
     for result in rdr.deserialize() {
         let record: Point = result.expect("Could not coerce to point.");
@@ -62,7 +62,14 @@ pub fn score_as_csv(
     let mut wtr = csv::WriterBuilder::new()
         .has_headers(false)
         .from_writer(io::stdout());
-    wtr.write_record(&["latitude", "longitude", "name", "category", "desirable", "undesirable"])?;
+    wtr.write_record(&[
+        "latitude",
+        "longitude",
+        "name",
+        "category",
+        "desirable",
+        "undesirable",
+    ])?;
     for p in point {
         p.category = Some("Point".to_string());
         wtr.serialize(p)?;
@@ -71,18 +78,18 @@ pub fn score_as_csv(
     for d in des {
         d.category = Some("Desirable".to_string());
         d.score = Some(Score {
-            desirable : 0, 
-            undesirable : 0
-        }); 
+            desirable: 0,
+            undesirable: 0,
+        });
         wtr.serialize(d)?;
     }
 
     for u in undes {
         u.category = Some("Undesirable".to_string());
         u.score = Some(Score {
-            desirable : 0, 
-            undesirable : 0
-        }); 
+            desirable: 0,
+            undesirable: 0,
+        });
         wtr.serialize(u)?;
     }
     wtr.flush()?;
