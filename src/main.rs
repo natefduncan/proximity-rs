@@ -63,7 +63,7 @@ fn main() {
     let mut scores = density::score(points, &x, &y, radius, grid_size);
     scores.sort_by(|a, b| {
         b.score.cmp(&a.score)
-    });
+    }); 
 
     if matches.is_present("N") {
         let n: usize = matches.value_of("N").unwrap().parse::<usize>().unwrap();

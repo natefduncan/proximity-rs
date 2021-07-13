@@ -4,9 +4,11 @@ use rust_decimal::prelude::*;
 use rust_decimal_macros::dec;
 use std::collections::HashMap;
 use std::io;
+use std::fs; 
 
 pub fn csv_file_to_points(file_path: &str) -> Vec<Point> {
-    let mut rdr = csv::Reader::from_path(&file_path).expect("Could not get from path.");
+    let path = fs::canonicalize(file_path).expect("Could not get file_path"); 
+    let mut rdr = csv::Reader::from_path(path).expect("Could not get from path.");
     let mut output: Vec<Point> = Vec::new();
     for result in rdr.deserialize() {
         let record: Point = result.expect("Could not coerce to point.");

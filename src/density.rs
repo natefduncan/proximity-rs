@@ -59,7 +59,7 @@ pub fn score(
     let y_density = point_density(&y_points, grid_size, n, rad_dg);
 
     //Score each point
-    let scores: Vec<Point> = x_points
+    let mut scores: Vec<Point> = x_points
         .iter_mut()
         .map(|point| {
             let lati = round(
