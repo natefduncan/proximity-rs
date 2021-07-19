@@ -1,2 +1,2 @@
-mod density;
-mod utils;
+pub mod density;
+pub mod utils;
