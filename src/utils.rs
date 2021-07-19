@@ -1,8 +1,5 @@
-use super::density::{Density, Point};
+use super::density::{Point};
 use csv;
-use rust_decimal::prelude::*;
-use rust_decimal_macros::dec;
-use std::collections::HashMap;
 use std::io;
 use std::fs; 
 
