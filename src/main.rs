@@ -6,7 +6,7 @@ use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("Proximity")
-    .version("1.0")
+    .version("0.1.1")
     .author("Nate D.")
     .about("Proximity score based on desirable and undesirables.")
     .arg(Arg::with_name("FILE")

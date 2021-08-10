@@ -1,10 +1,4 @@
-//Grid size: distance in kilometers between the
-//grid lines that will support discretization
-//of data and density reference
-
-//Radius: distance in kilometers that represents
-//the local neighborhood where an event
-//adds density
+//Modeled after https://cran.r-project.org/web/packages/pointdensityP/index.html
 
 use ndarray;
 use rust_decimal::prelude::*;
