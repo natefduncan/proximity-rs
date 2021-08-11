@@ -1,5 +1,7 @@
 mod density;
 mod utils;
+mod web; 
+
 use rust_decimal::prelude::*;
 extern crate clap;
 use clap::{App, Arg};
