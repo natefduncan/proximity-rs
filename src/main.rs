@@ -13,6 +13,12 @@ fn main() {
         .help("Path to CSV. If not supplied, will look to STDIN.")
         .required(false)
         .index(1))
+    .arg(Arg::with_name("CATEGORY")
+        .short("c")
+        .long("c")
+        .value_name("CATEGORY")
+        .help("Category column name. Default is 'category'.")
+        .takes_value(true))
     .arg(Arg::with_name("X")
         .short("x")
         .long("x")
@@ -43,24 +49,30 @@ fn main() {
         .value_name("N")
         .help("Top N records to return. If not supplied, will return all.")
         .takes_value(true))
+    .arg(Arg::with_name("output-y")
+        .long("output-y")
+        .takes_value(false)
+        .help("Boolean. True will include all y values with score zero. False will only return x values."))
     .get_matches();
 
     let grid_size: Decimal =
         Decimal::from_str(matches.value_of("GRID-SIZE").unwrap_or("1")).unwrap();
     let radius: Decimal = 
         Decimal::from_str(matches.value_of("RADIUS").unwrap_or("5")).unwrap();
+    let category : &str = matches.value_of("CATEGORY").unwrap_or("category"); 
     let x : &str = matches.value_of("X").unwrap(); 
     let y : &str = matches.value_of("Y").unwrap(); 
+    let output_y : bool = matches.is_present("output-y"); 
 
     let mut points: Vec<density::Point> = Vec::new();
     if matches.is_present("FILE") {
         let file = matches.value_of("FILE").unwrap();
-        points.append(&mut utils::csv_file_to_points(&file));
+        points.append(&mut utils::csv_file_to_points(&file, &category));
     } else {
-        points.append(&mut utils::stdin_to_points());
+        points.append(&mut utils::stdin_to_points(&category));
     }
 
-    let mut scores = density::score(points, &x, &y, radius, grid_size);
+    let mut scores = density::score(points, &x, &y, radius, grid_size, output_y);
     scores.sort_by(|a, b| {
         b.score.cmp(&a.score)
     }); 
