@@ -72,15 +72,14 @@ fn main() {
         points.append(&mut utils::stdin_to_points(&category));
     }
 
-    let mut scores = density::score(points, &x, &y, radius, grid_size, output_y);
-    scores.sort_by(|a, b| {
-        b.score.cmp(&a.score)
-    }); 
-
+    let n : Option<usize>; 
     if matches.is_present("N") {
-        let n: usize = matches.value_of("N").unwrap().parse::<usize>().unwrap();
-        utils::points_as_csv(scores.into_iter().take(n).collect::<Vec<density::Point>>()).expect("Fail");
+        n = Some(matches.value_of("N").unwrap().parse::<usize>().unwrap()); 
     } else {
-        utils::points_as_csv(scores).expect("Fail");
+        n = None; 
     }
+
+    let scores = density::score(points, &x, &y, radius, grid_size, output_y, n);
+
+    utils::points_as_csv(scores).expect("Fail");
 }
