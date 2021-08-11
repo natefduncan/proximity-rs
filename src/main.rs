@@ -8,7 +8,7 @@ fn main() {
     let matches = App::new("Proximity")
     .version("0.1.2")
     .author("Nate D.")
-    .about("Proximity score based on desirable and undesirables.")
+    .about("Proximity score based on desirables.")
     .arg(Arg::with_name("FILE")
         .help("Path to CSV. If not supplied, will look to STDIN.")
         .required(false)

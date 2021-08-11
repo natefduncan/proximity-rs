@@ -20,18 +20,20 @@ open map.html
 
 ## Help
 ```
-Proximity 0.1.1
+Proximity 0.1.2
 Nate D.
-Proximity score based on desirable and undesirables.
+Proximity score based on desirables.
 
 USAGE:
-    proximity [OPTIONS] [FILE]
+    proximity [FLAGS] [OPTIONS] [FILE]
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -h, --help        Prints help information
+        --output-y    Boolean. True will include all y values with score zero. False will only return x values.
+    -V, --version     Prints version information
 
 OPTIONS:
+    -c, --c <CATEGORY>             Category column name. Default is 'category'.
     -g, --grid-size <GRID-SIZE>    Set binning size (km) in circle area. Default is 1km.
     -n, --n <N>                    Top N records to return. If not supplied, will return all.
     -r, --radius <RADIUS>          Set circle radius (km) for circle area. Default is 5km.
