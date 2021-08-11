@@ -12,9 +12,9 @@ Designed to (almost) fit nicely with [goose-rs](https://github.com/natefduncan/g
 For example:
 
 ```
-goose parks,restaurants mesa,az -d 50 -f csv > test.csv && \
-proximity test.csv -c search -x restaurants -y parks --output-y -n 10 |
-leaflet --colors "#2a9d8f,#f4a261" > map.html &&
+goose parks,restaurants mesa,az -d 25 -f csv > test.csv && \
+proximity test.csv -c search -x restaurants -y parks --output-y -n 10 | \
+leaflet --colors "#2a9d8f,#f4a261" > map.html && \ 
 open map.html
 ```
 
