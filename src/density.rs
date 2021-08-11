@@ -31,7 +31,8 @@ pub fn score(
     y : &str,
     radius: Decimal,
     grid_size: Decimal,
-    output_y : bool
+    output_y : bool, 
+    x_n : Option<usize>
 ) -> Vec<Point> {
     //convert grid size and radius
     let grid_size: Decimal = round(grid_size / dec!(111.2), 3);
@@ -81,6 +82,21 @@ pub fn score(
             output
         })
         .collect::<Vec<Point>>();
+
+    //Sort by score: All x will be on top
+    scores.sort_by(|a, b| {
+        b.score.cmp(&a.score)
+    }); 
+
+    //Return N of X
+    match x_n {
+        Some(v) => {
+            scores = scores.into_iter().take(v).collect::<Vec<Point>>();
+        }, 
+        None => ()
+    }
+
+    //Append Y points
     if output_y {
         scores.append(&mut y_points);  
     }
