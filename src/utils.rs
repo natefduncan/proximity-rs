@@ -4,7 +4,21 @@ use std::io;
 use std::fs; 
 use rust_decimal::prelude::*;
 
-fn reader_to_points<R: io::Read>(rdr: &mut csv::Reader<R>, _category : &str) -> Vec<Point> {
+pub fn get_x_y(points: Vec<Point>, x_cat: &str) -> (Vec<Point>, Vec<Point>) {
+    //Split into x and y points
+    let mut x_points : Vec<Point> = Vec::new();
+    let mut y_points : Vec<Point> = Vec::new();
+    for point in &points {
+        if point.category == Some(x_cat.to_owned()) {
+            x_points.push(point.clone());
+        } else {
+            y_points.push(point.clone()); 
+        }
+    }
+    (x_points, y_points)
+}
+
+fn reader_to_points<R: io::Read>(rdr: &mut csv::Reader<R>, _category : Option<&str>) -> Vec<Point> {
     //Headers
     let headers = rdr.headers().expect("no headers");
     let (mut lati, mut loni, mut namei, mut cati) = (None, None, None, None); 
@@ -31,13 +45,13 @@ fn reader_to_points<R: io::Read>(rdr: &mut csv::Reader<R>, _category : &str) -> 
     return points; 
 }
 
-pub fn csv_file_to_points(file_path: &str, category : &str) -> Vec<Point> {
+pub fn csv_file_to_points(file_path: &str, category : Option<&str>) -> Vec<Point> {
     let path = fs::canonicalize(file_path).expect("Could not get file_path"); 
     let mut rdr = csv::Reader::from_path(path).expect("Could not get from path.");
     reader_to_points::<fs::File>(&mut rdr, category)
 }
 
-pub fn stdin_to_points(category : &str) -> Vec<Point> {
+pub fn stdin_to_points(category : Option<&str>) -> Vec<Point> {
     let mut rdr = csv::Reader::from_reader(io::stdin());
     reader_to_points::<io::Stdin>(&mut rdr, category)
 }

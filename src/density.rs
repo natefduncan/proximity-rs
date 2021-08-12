@@ -26,9 +26,8 @@ pub fn round(x: Decimal, n: u32) -> Decimal {
 }
 
 pub fn score(
-    points: Vec<Point>,
-    x : &str, 
-    y : &str,
+    x_points : &mut Vec<Point>, 
+    y_points : &mut Vec<Point>, 
     radius: Decimal,
     grid_size: Decimal,
     output_y : bool, 
@@ -39,17 +38,6 @@ pub fn score(
     let rad_dg: Decimal = radius / dec!(111.2); // radius as a latitudinal distance
     let rad_steps: Decimal = round(rad_dg / grid_size, 0);
     let n = ((2.0 * rad_steps.to_f64().unwrap()) + 1.0) as usize;
-
-    //Split into x and y points
-    let mut x_points : Vec<Point> = Vec::new();
-    let mut y_points : Vec<Point> = Vec::new();
-    for point in &points {
-        if point.category == Some(x.to_owned()) {
-            x_points.push(point.clone());
-        } else if point.category == Some(y.to_owned()) {
-            y_points.push(point.clone()); 
-        }
-    }
 
     //Get density
     let y_density = point_density(&y_points, grid_size, n, rad_dg);
@@ -98,7 +86,7 @@ pub fn score(
 
     //Append Y points
     if output_y {
-        scores.append(&mut y_points);  
+        scores.append(y_points);  
     }
     scores
 }
