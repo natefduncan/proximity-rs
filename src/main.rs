@@ -1,6 +1,5 @@
 mod density;
 mod utils;
-mod web; 
 
 use rust_decimal::prelude::*;
 extern crate clap;
@@ -11,10 +10,14 @@ fn main() {
     .version("0.1.2")
     .author("Nate D.")
     .about("Proximity score based on desirables.")
-    .arg(Arg::with_name("FILE")
+    .arg(Arg::with_name("FILE1")
         .help("Path to CSV. If not supplied, will look to STDIN.")
         .required(false)
         .index(1))
+    .arg(Arg::with_name("FILE2")
+        .help("Path to CSV. If not supplied, will assume x and y are in FILE1.")
+        .required(false)
+        .index(2))
     .arg(Arg::with_name("CATEGORY")
         .short("c")
         .long("c")
@@ -61,18 +64,31 @@ fn main() {
         Decimal::from_str(matches.value_of("GRID-SIZE").unwrap_or("1")).unwrap();
     let radius: Decimal = 
         Decimal::from_str(matches.value_of("RADIUS").unwrap_or("5")).unwrap();
-    let category : &str = matches.value_of("CATEGORY").unwrap_or("category"); 
-    let x : &str = matches.value_of("X").unwrap(); 
-    let y : &str = matches.value_of("Y").unwrap(); 
+    let category : Option<&str> = matches.value_of("CATEGORY"); 
+    let x_cat : Option<&str> = matches.value_of("X"); 
     let output_y : bool = matches.is_present("output-y"); 
 
-    let mut points: Vec<density::Point> = Vec::new();
-    if matches.is_present("FILE") {
-        let file = matches.value_of("FILE").unwrap();
-        points.append(&mut utils::csv_file_to_points(&file, &category));
+    //File
+    let mut x: Vec<density::Point>;
+    let mut y: Vec<density::Point>;
+    if matches.is_present("FILE1") {
+        let file1 = matches.value_of("FILE1").unwrap();
+        if matches.is_present("FILE2") {
+            let file2 = matches.value_of("FILE2").unwrap();
+            x = utils::csv_file_to_points(&file1, category);
+            y = utils::csv_file_to_points(&file2, category);
+        } else {
+            let s = utils::csv_file_to_points(&file1, category);
+            let x_y = utils::get_x_y(s, x_cat.unwrap());
+            x = x_y.0; 
+            y = x_y.1; 
+        }
     } else {
-        points.append(&mut utils::stdin_to_points(&category));
-    }
+        let s = utils::stdin_to_points(category);
+        let x_y = utils::get_x_y(s, x_cat.unwrap());
+        x = x_y.0; 
+        y = x_y.1; 
+}
 
     let n : Option<usize>; 
     if matches.is_present("N") {
@@ -81,7 +97,7 @@ fn main() {
         n = None; 
     }
 
-    let scores = density::score(points, &x, &y, radius, grid_size, output_y, n);
+    let scores = density::score(&mut x, &mut y, radius, grid_size, output_y, n);
 
     utils::points_as_csv(scores).expect("Fail");
 }
