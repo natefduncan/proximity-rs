@@ -32,6 +32,15 @@ fn round(x: f64, n: u32) -> f64 {
 }
 
 #[wasm_bindgen]
+extern {
+    fn alert(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn test(a : u32, b: u32) {
+    alert("Test!"); 
+}
+
 pub fn score(
     //(id, latitude, longitude)
     x : &JsValue,
