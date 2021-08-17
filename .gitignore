@@ -18,3 +18,4 @@ Cargo.lock
 *.html
 /target
 .DS_Store
+!benchmarks/*.csv
