@@ -7,14 +7,14 @@ use clap::{App, Arg};
 
 fn main() {
     let matches = App::new("Proximity")
-    .version("0.1.2")
+    .version("0.1.3")
     .author("Nate D.")
-    .about("Proximity score based on desirables.")
-    .arg(Arg::with_name("FILE1")
+    .about("Proximity score: which X points are closest to the most Y points?")
+    .arg(Arg::with_name("FILE_X")
         .help("Path to CSV. If not supplied, will look to STDIN.")
         .required(false)
         .index(1))
-    .arg(Arg::with_name("FILE2")
+    .arg(Arg::with_name("FILE_Y")
         .help("Path to CSV. If not supplied, will assume x and y are in FILE1.")
         .required(false)
         .index(2))
@@ -71,10 +71,10 @@ fn main() {
     //File
     let mut x: Vec<density::Point>;
     let mut y: Vec<density::Point>;
-    if matches.is_present("FILE1") {
-        let file1 = matches.value_of("FILE1").unwrap();
-        if matches.is_present("FILE2") {
-            let file2 = matches.value_of("FILE2").unwrap();
+    if matches.is_present("FILE_X") {
+        let file1 = matches.value_of("FILE_X").unwrap();
+        if matches.is_present("FILE_Y") {
+            let file2 = matches.value_of("FILE_Y").unwrap();
             x = utils::csv_file_to_points(&file1, category);
             y = utils::csv_file_to_points(&file2, category);
         } else {

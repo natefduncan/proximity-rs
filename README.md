@@ -20,12 +20,12 @@ open map.html
 
 ## Help
 ```
-Proximity 0.1.2
+Proximity 0.1.3
 Nate D.
-Proximity score based on desirables.
+Proximity score: which X points are closest to the most Y points?
 
 USAGE:
-    proximity [FLAGS] [OPTIONS] [FILE]
+    proximity [FLAGS] [OPTIONS] [ARGS]
 
 FLAGS:
     -h, --help        Prints help information
@@ -41,7 +41,8 @@ OPTIONS:
     -y, --y <y>                    Name of y value in category column.
 
 ARGS:
-    <FILE>    Path to CSV. If not supplied, will look to STDIN.
+    <FILE_X>    Path to CSV. If not supplied, will look to STDIN.
+    <FILE_Y>    Path to CSV. If not supplied, will assume x and y are in FILE1.
 ```
 
 
